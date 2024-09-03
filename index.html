@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Match Display</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: space-between;
+            margin: 20px;
+        }
+        .team {
+            width: 45%;
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+        .team h2 {
+            text-align: center;
+        }
+        .team ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        .bans {
+            margin-top: 20px;
+        }
+        .winner {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .stats {
+            position: fixed;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #f0f0f0;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="team" id="blue-team">
+        <h2>Blue Team</h2>
+        <!-- Champions for Blue Team -->
+        <ul id="blue-champs"></ul>
+        <div class="bans">
+            <h3>Bans</h3>
+            <!-- Bans for Blue Team -->
+            <ul id="blue-bans"></ul>
+        </div>
+        <div class="winner">
+            <button onclick="selectWinner('blue')">Select as Winner</button>
+        </div>
+    </div>
+
+    <div class="team" id="red-team">
+        <h2>Red Team</h2>
+        <!-- Champions for Red Team -->
+        <ul id="red-champs"></ul>
+        <div class="bans">
+            <h3>Bans</h3>
+            <!-- Bans for Red Team -->
+            <ul id="red-bans"></ul>
+        </div>
+        <div class="winner">
+            <button onclick="selectWinner('red')">Select as Winner</button>
+        </div>
+    </div>
+
+    <!-- Stats display -->
+    <div class="stats">
+        <p>Correct Choices: <span id="correct-counter">0</span></p>
+        <p>Incorrect Choices: <span id="incorrect-counter">0</span></p>
+        <p>Percentage Correct: <span id="percentage-correct">0%</span></p>
+    </div>
+
+    <script>
+        let correctCounter = 0;
+        let incorrectCounter = 0;
+
+        async function fetchMatchData() {
+            const response = await fetch('http://localhost:5000/api/match');
+            const data = await response.json();
+            displayMatch(data);
+        }
+
+        function displayMatch(data) {
+            const blueTeam = document.getElementById('blue-champs');
+            const redTeam = document.getElementById('red-champs');
+            const blueBans = document.getElementById('blue-bans');
+            const redBans = document.getElementById('red-bans');
+
+            // Sort players by banPickTurn
+            data.sort((a, b) => a.player_banPickTurn - b.player_banPickTurn);
+
+            // Clear existing data
+            blueTeam.innerHTML = '';
+            redTeam.innerHTML = '';
+            blueBans.innerHTML = '';
+            redBans.innerHTML = '';
+
+            data.forEach(player => {
+                const li = document.createElement('li');
+                li.textContent = player.player_champName;
+
+                if (player.player_teamId === 'blue') {
+                    // Blue team handling
+                    blueTeam.appendChild(li);
+                    if (player.player_champName_ban) {
+                        const banLi = document.createElement('li');
+                        banLi.textContent = player.player_champName_ban;
+                        blueBans.appendChild(banLi);
+                    }
+                } else if (player.player_teamId === 'red') {
+                    // Red team handling
+                    redTeam.appendChild(li);
+                    if (player.player_champName_ban) {
+                        const banLi = document.createElement('li');
+                        banLi.textContent = player.player_champName_ban;
+                        redBans.appendChild(banLi);
+                    }
+                }
+            });
+
+            // Store the actual winning team for later comparison
+            const winningPlayer = data.find(player => player.player_win === true);
+            window.actualWinningTeam = winningPlayer.player_teamId;
+        }
+
+        function selectWinner(selectedTeam) {
+            if (selectedTeam === window.actualWinningTeam) {
+                correctCounter++;
+            } else {
+                incorrectCounter++;
+            }
+
+            // Update counters and percentage
+            document.getElementById('correct-counter').textContent = correctCounter;
+            document.getElementById('incorrect-counter').textContent = incorrectCounter;
+            const total = correctCounter + incorrectCounter;
+            const percentage = total === 0 ? 0 : ((correctCounter / total) * 100).toFixed(2);
+            document.getElementById('percentage-correct').textContent = percentage + '%';
+
+            // Fetch a new match to display
+            fetchMatchData();
+        }
+
+        // Fetch match data when the page loads
+        fetchMatchData();
+    </script>
+</body>
+</html>

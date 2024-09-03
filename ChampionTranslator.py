@@ -1,4 +1,4 @@
-8import os
+import os
 
 class ChampionTranslator:
     def __init__(self):

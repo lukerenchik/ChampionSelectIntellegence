@@ -10,8 +10,34 @@ Stage 3: Data pipeline for new match data
 Stage 4: Reinforcement learning champion select agent
 
 Main Tasks:
-Get Champion Images
-Wrangle Match Data
+
+Get Champion Images - Done
+
+Wrangle Match Data - Done
+
+What we want from dataset:
+
+match_matchId
+player_teamId
+player_teamPosition
+player_lane
+player_champName
+player_banPickTurn
+player_champName_ban
+player_win
+
+
+Next Set of Tasks:
+
+Create the guessing game using match data
+
+Store Bundled matches in a database.
+
+link champion images to picks/bans 
+
+
+
+
 
 
 Ideas:
