@@ -9,10 +9,11 @@ class MatchBundler:
         :param data: DataFrame containing the match data.
         :param features: List of column names to extract as features.
         """
-        self.data = data[features]  # Only keep the relevant features
+        self.data = data[features]
         self.features = features
-        self.bundles = self._create_bundles()
+        self.used_matches = set()
         self.current_index = 0
+        self.bundles = self._create_bundles()
 
     def _create_bundles(self):
         """
@@ -26,21 +27,24 @@ class MatchBundler:
 
     def get_next_bundle(self):
         """
-        Return the next bundle of matches (i.e., the next single match).
+        Return the next bundle of matches (i.e., the next single match) that hasn't been used.
 
         :return: DataFrame containing the data for the next match.
         """
-        if self.current_index < len(self.bundles):
+        while self.current_index < len(self.bundles):
             bundle = self.bundles[self.current_index]
+            match_id = bundle['match_matchId'].iloc[0]
             self.current_index += 1
-            return bundle
-        else:
-            return None  # No more bundles left
+
+            if match_id not in self.used_matches:
+                self.used_matches.add(match_id)
+                return bundle
+        return None
 
     def reset(self):
         """
         Reset the index to start serving bundles from the beginning.
+        Clear the used matches set.
         """
         self.current_index = 0
-
-
+        self.used_matches.clear()

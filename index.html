@@ -3,13 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Match Display</title>
+    <title>League of Legends Match Predictor</title>
     <style>
         body {
             font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .container {
             display: flex;
             justify-content: space-between;
-            margin: 20px;
         }
         .team {
             width: 45%;
@@ -30,86 +32,231 @@
             text-align: center;
             margin-top: 20px;
         }
-        .stats {
-            position: fixed;
-            bottom: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: #f0f0f0;
+        .stats, .login-form, .leaderboard {
+            margin-top: 20px;
             padding: 10px;
             border: 1px solid #ccc;
             border-radius: 5px;
+        }
+        .login-form {
+            width: 50%;
+            margin: 0 auto;
+        }
+        .leaderboard {
+            width: 50%;
+            margin: 0 auto;
+        }
+        .error {
+            color: red;
         }
     </style>
 </head>
 <body>
 
-    <div class="team" id="blue-team">
-        <h2>Blue Team</h2>
-        <!-- Champions for Blue Team -->
-        <ul id="blue-champs"></ul>
-        <div class="bans">
-            <h3>Bans</h3>
-            <!-- Bans for Blue Team -->
-            <ul id="blue-bans"></ul>
+    <!-- Login and Registration Form -->
+    <div class="login-form" id="login-section">
+        <h2>Login</h2>
+        <input type="text" id="username" placeholder="Username">
+        <input type="password" id="password" placeholder="Password">
+        <button onclick="login()">Login</button>
+        <button onclick="showRegistrationForm()">Register</button>
+        <p class="error" id="login-error"></p>
+    </div>
+
+    <!-- Registration Form -->
+    <div class="login-form" id="registration-section" style="display: none;">
+        <h2>Register</h2>
+        <input type="text" id="reg-username" placeholder="Username">
+        <input type="password" id="reg-password" placeholder="Password">
+        <button id="register-button" onclick="register()">Register</button>
+        <button onclick="hideRegistrationForm()">Cancel</button>
+        <p id="loading-message"></p> <!-- Loading message area -->
+        <p class="error" id="registration-error" style="color: red;"></p> <!-- Error message area -->
+    </div>
+
+    <!-- Match Display and User Interaction -->
+    <div class="container" id="match-section" style="display: none;">
+        <div class="team" id="blue-team">
+            <h2>Blue Team</h2>
+            <ul id="blue-champs"></ul>
+            <div class="bans">
+                <h3>Bans</h3>
+                <ul id="blue-bans"></ul>
+            </div>
+            <div class="winner">
+                <button onclick="selectWinner('blue')">Select as Winner</button>
+            </div>
         </div>
-        <div class="winner">
-            <button onclick="selectWinner('blue')">Select as Winner</button>
+
+        <div class="team" id="red-team">
+            <h2>Red Team</h2>
+            <ul id="red-champs"></ul>
+            <div class="bans">
+                <h3>Bans</h3>
+                <ul id="red-bans"></ul>
+            </div>
+            <div class="winner">
+                <button onclick="selectWinner('red')">Select as Winner</button>
+            </div>
         </div>
     </div>
 
-    <div class="team" id="red-team">
-        <h2>Red Team</h2>
-        <!-- Champions for Red Team -->
-        <ul id="red-champs"></ul>
-        <div class="bans">
-            <h3>Bans</h3>
-            <!-- Bans for Red Team -->
-            <ul id="red-bans"></ul>
-        </div>
-        <div class="winner">
-            <button onclick="selectWinner('red')">Select as Winner</button>
-        </div>
-    </div>
-
-    <!-- Stats display -->
-    <div class="stats">
+    <!-- User Stats -->
+    <div class="stats" id="stats-section" style="display: none;">
         <p>Correct Choices: <span id="correct-counter">0</span></p>
         <p>Incorrect Choices: <span id="incorrect-counter">0</span></p>
         <p>Percentage Correct: <span id="percentage-correct">0%</span></p>
+    </div>
+
+    <!-- Leaderboard -->
+    <div class="leaderboard" id="leaderboard-section" style="display: none;">
+        <h2>Leaderboard</h2>
+        <ul id="leaderboard"></ul>
     </div>
 
     <script>
         let correctCounter = 0;
         let incorrectCounter = 0;
 
-        async function fetchMatchData() {
-            const response = await fetch('http://localhost:5000/api/match');
-            const data = await response.json();
-            displayMatch(data);
+        // Show Registration Form
+        function showRegistrationForm() {
+            document.getElementById('login-section').style.display = 'none';
+            document.getElementById('registration-section').style.display = 'block';
         }
 
+        // Hide Registration Form
+        function hideRegistrationForm() {
+            document.getElementById('login-section').style.display = 'block';
+            document.getElementById('registration-section').style.display = 'none';
+        }
+
+        // Login Functionality
+        async function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            const response = await fetch('http://localhost:5000/api/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username, password }),
+                credentials: 'include'  // Include credentials (cookies) with request
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                document.getElementById('login-section').style.display = 'none';
+                document.getElementById('match-section').style.display = 'flex';
+                document.getElementById('stats-section').style.display = 'block';
+                document.getElementById('leaderboard-section').style.display = 'block';
+                updateStats(data.stats);
+                fetchMatchData();
+                fetchLeaderboard();
+            } else {
+                document.getElementById('login-error').textContent = data.message;
+            }
+        }
+
+        // Registration Functionality
+
+        async function register() {
+            const username = document.getElementById('reg-username').value;
+            const password = document.getElementById('reg-password').value;
+            const registerButton = document.getElementById('register-button');
+            const errorMessage = document.getElementById('registration-error');
+            const loadingMessage = document.getElementById('loading-message');
+
+            // Clear any previous messages
+            errorMessage.textContent = '';
+            loadingMessage.textContent = '';
+
+            // Client-side input validation
+            if (!username || !password) {
+                errorMessage.textContent = 'Username and password are required.';
+                return;
+            }
+            if (password.length < 8) {
+                errorMessage.textContent = 'Password must be at least 8 characters long.';
+                return;
+            }
+
+            // Disable the button to prevent multiple submissions
+            registerButton.disabled = true;
+
+            // Show a loading message or spinner
+            loadingMessage.textContent = 'Registering...';
+
+            try {
+                const response = await fetch('http://localhost:5000/api/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('Registration successful! Please log in.');
+                    hideRegistrationForm();
+                } else {
+                    errorMessage.textContent = data.message;
+                }
+            } catch (error) {
+                errorMessage.textContent = 'An error occurred: ' + error.message;
+            } finally {
+                // Re-enable the button after the request is complete
+                registerButton.disabled = false;
+                // Clear the loading message
+                loadingMessage.textContent = '';
+            }
+        }
+
+
+       // Fetch Match Data
+        async function fetchMatchData() {
+            try {
+                const response = await fetch('http://localhost:5000/api/match', {
+                    method: 'GET',
+                    credentials: 'include'  // This line ensures cookies (session info) are sent with the request
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    displayMatch(data);  // Function to display the match data
+                } else {
+                    alert(data.message);  // Alert with the error message if not OK
+                }
+            } catch (error) {
+                console.error('Error fetching match data:', error);
+                alert('An error occurred while fetching match data.');
+            }
+        }
+
+
+        // Display Match Data
         function displayMatch(data) {
             const blueTeam = document.getElementById('blue-champs');
             const redTeam = document.getElementById('red-champs');
             const blueBans = document.getElementById('blue-bans');
             const redBans = document.getElementById('red-bans');
 
-            // Sort players by banPickTurn
-            data.sort((a, b) => a.player_banPickTurn - b.player_banPickTurn);
-
-            // Clear existing data
             blueTeam.innerHTML = '';
             redTeam.innerHTML = '';
             blueBans.innerHTML = '';
             redBans.innerHTML = '';
+
+            data.sort((a, b) => a.player_banPickTurn - b.player_banPickTurn);
 
             data.forEach(player => {
                 const li = document.createElement('li');
                 li.textContent = player.player_champName;
 
                 if (player.player_teamId === 'blue') {
-                    // Blue team handling
                     blueTeam.appendChild(li);
                     if (player.player_champName_ban) {
                         const banLi = document.createElement('li');
@@ -117,7 +264,6 @@
                         blueBans.appendChild(banLi);
                     }
                 } else if (player.player_teamId === 'red') {
-                    // Red team handling
                     redTeam.appendChild(li);
                     if (player.player_champName_ban) {
                         const banLi = document.createElement('li');
@@ -127,31 +273,53 @@
                 }
             });
 
-            // Store the actual winning team for later comparison
             const winningPlayer = data.find(player => player.player_win === true);
             window.actualWinningTeam = winningPlayer.player_teamId;
         }
 
-        function selectWinner(selectedTeam) {
+        // Handle Winner Selection
+        async function selectWinner(selectedTeam) {
             if (selectedTeam === window.actualWinningTeam) {
                 correctCounter++;
             } else {
                 incorrectCounter++;
             }
 
-            // Update counters and percentage
+            updateStats();
+            await fetchMatchData();
+        }
+
+        // Update Stats
+        function updateStats(stats) {
+            if (stats) {
+                correctCounter = stats.correct;
+                incorrectCounter = stats.incorrect;
+            }
+
             document.getElementById('correct-counter').textContent = correctCounter;
             document.getElementById('incorrect-counter').textContent = incorrectCounter;
             const total = correctCounter + incorrectCounter;
             const percentage = total === 0 ? 0 : ((correctCounter / total) * 100).toFixed(2);
             document.getElementById('percentage-correct').textContent = percentage + '%';
-
-            // Fetch a new match to display
-            fetchMatchData();
         }
 
-        // Fetch match data when the page loads
-        fetchMatchData();
+        // Fetch Leaderboard
+        async function fetchLeaderboard() {
+            const response = await fetch('http://localhost:5000/api/leaderboard');
+            const data = await response.json();
+
+            if (response.ok) {
+                const leaderboard = document.getElementById('leaderboard');
+                leaderboard.innerHTML = '';
+                data.forEach(user => {
+                    const li = document.createElement('li');
+                    li.textContent = `${user.username}: ${user.correct} correct (${user.percentage}%)`;
+                    leaderboard.appendChild(li);
+                });
+            } else {
+                console.error('Failed to fetch leaderboard');
+            }
+        }
     </script>
 </body>
 </html>
