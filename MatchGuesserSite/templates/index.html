@@ -216,20 +216,29 @@
         }
 
 
-       // Fetch Match Data
-        async function fetchMatchData() {
+       async function fetchMatchData() {
             try {
                 const response = await fetch('http://localhost:5000/api/match', {
                     method: 'GET',
-                    credentials: 'include'  // This line ensures cookies (session info) are sent with the request
+                    credentials: 'include',  // Ensure session cookies are sent with the request
                 });
 
                 const data = await response.json();
 
+                console.log('Match data received:', data);  // Log the response data
+
                 if (response.ok) {
-                    displayMatch(data);  // Function to display the match data
+                    if (data.length > 0) {
+                        // Assuming gameId exists
+                        window.currentGameId = data[0].match_matchId;  // Set the currentGameId
+                        displayMatch(data);  // Call to display the match data
+                    } else {
+                        alert('No match data found.');
+                    }
+                } else if (response.status === 401) {
+                    alert('Unauthorized: Please log in again.');
                 } else {
-                    alert(data.message);  // Alert with the error message if not OK
+                    alert('Error: ' + data.message);  // Display the message from backend
                 }
             } catch (error) {
                 console.error('Error fetching match data:', error);
@@ -238,8 +247,9 @@
         }
 
 
-        // Display Match Data
         function displayMatch(data) {
+            console.log('Displaying match data:', data);  // Log the data being displayed
+
             const blueTeam = document.getElementById('blue-champs');
             const redTeam = document.getElementById('red-champs');
             const blueBans = document.getElementById('blue-bans');
@@ -273,35 +283,73 @@
                 }
             });
 
-            const winningPlayer = data.find(player => player.player_win === true);
-            window.actualWinningTeam = winningPlayer.player_teamId;
-        }
+    // Log to ensure this part of the code is reached
+    console.log('Setting actualWinningTeam:', data);
+
+    const winningPlayer = data.find(player => player.player_win === true);
+    if (winningPlayer) {
+        window.actualWinningTeam = winningPlayer.player_teamId;
+    } else {
+        console.error('No winning player found');
+        alert('Error: No winning player data found.');
+    }
+}
+
 
         // Handle Winner Selection
         async function selectWinner(selectedTeam) {
-            if (selectedTeam === window.actualWinningTeam) {
-                correctCounter++;
-            } else {
-                incorrectCounter++;
+            const gameId = window.currentGameId; // Assuming gameId is available globally or set previously
+
+            if (!gameId) {
+                alert('Game ID is missing. Cannot submit the result.');
+                return;
             }
 
-            updateStats();
-            await fetchMatchData();
+            let apiEndpoint = '';
+
+            // Check if the selected team matches the actual winning team
+            if (selectedTeam === window.actualWinningTeam) {
+                // Correct guess, send to correct_guess API
+                apiEndpoint = '/api/correct_guess';
+            } else {
+                // Incorrect guess, send to incorrect_guess API
+                apiEndpoint = '/api/incorrect_guess';
+            }
+
+            try {
+                // Send the selected guess to the backend with gameId
+                const response = await fetch(apiEndpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ gameId: gameId })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Update stats on the frontend based on the response from the server
+                    updateStats(data.correct, data.incorrect);
+                    // Fetch the next match data
+                    await fetchMatchData();
+                } else {
+                    // Handle any errors from the backend (e.g., game already evaluated)
+                    alert(data.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while submitting your guess.');
+            }
         }
+
 
         // Update Stats
-        function updateStats(stats) {
-            if (stats) {
-                correctCounter = stats.correct;
-                incorrectCounter = stats.incorrect;
-            }
-
+        function updateStats(correctCounter, incorrectCounter) {
             document.getElementById('correct-counter').textContent = correctCounter;
             document.getElementById('incorrect-counter').textContent = incorrectCounter;
-            const total = correctCounter + incorrectCounter;
-            const percentage = total === 0 ? 0 : ((correctCounter / total) * 100).toFixed(2);
-            document.getElementById('percentage-correct').textContent = percentage + '%';
         }
+
 
         // Fetch Leaderboard
         async function fetchLeaderboard() {

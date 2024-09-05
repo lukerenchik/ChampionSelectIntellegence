@@ -4,7 +4,7 @@ from sklearn.preprocessing import OneHotEncoder
 import numpy as np
 
 # Load the CSV data into a pandas DataFrame
-csv_file_path = 'Data/LoL-Champions.csv'  # Replace with the path to your CSV file
+csv_file_path = '../Data/LoL-Champions.csv'  # Replace with the path to your CSV file
 df = pd.read_csv(csv_file_path)
 
 # Assuming the first column is the champion names
