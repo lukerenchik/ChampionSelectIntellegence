@@ -1,10 +1,262 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="icon" href="../static/favicon.ico" type="image/x-icon">
     <meta charset="UTF-8">
-    <title>Title</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>League of Legends Match Predictor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .container {
+            display: flex;
+            justify-content: space-between;
+        }
+        .team {
+            width: 45%;
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+        .team h2 {
+            text-align: center;
+        }
+        .team ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        .bans {
+            margin-top: 20px;
+        }
+        .winner {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .stats, .leaderboard {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .leaderboard {
+            width: 50%;
+            margin: 0 auto;
+        }
+        .error {
+            color: red;
+        }
+        .success {
+            color: green;
+        }
+    </style>
 </head>
 <body>
 
+    <!-- Match Display and User Interaction -->
+    <div class="container" id="match-section" style="display: none;">
+        <div class="team" id="blue-team">
+            <h2>Blue Team</h2>
+            <ul id="blue-champs"></ul>
+            <div class="bans">
+                <h3>Bans</h3>
+                <ul id="blue-bans"></ul>
+            </div>
+            <div class="winner">
+                <button onclick="selectWinner('blue')">Select as Winner</button>
+            </div>
+        </div>
+
+        <div class="team" id="red-team">
+            <h2>Red Team</h2>
+            <ul id="red-champs"></ul>
+            <div class="bans">
+                <h3>Bans</h3>
+                <ul id="red-bans"></ul>
+            </div>
+            <div class="winner">
+                <button onclick="selectWinner('red')">Select as Winner</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Stats -->
+    <div class="stats" id="stats-section" style="display: none;">
+        <p>Correct Choices: <span id="correct-counter">0</span></p>
+        <p>Incorrect Choices: <span id="incorrect-counter">0</span></p>
+        <p>Percentage Correct: <span id="percentage-correct">0%</span></p>
+    </div>
+
+    <!-- Leaderboard -->
+    <div class="leaderboard" id="leaderboard-section" style="display: none;">
+        <h2>Leaderboard</h2>
+        <ul id="leaderboard"></ul>
+    </div>
+
+    <script>
+        let correctCounter = 0;
+        let incorrectCounter = 0;
+
+        // Fetch random match data
+        async function fetchMatchData() {
+            try {
+                const response = await fetch('http://localhost:5000/api/rand_match', {
+                    method: 'GET',
+                    credentials: 'include',  // Ensure session cookies are sent with the request
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    displayMatch(data);
+                } else if (response.status === 401) {
+                    alert('Unauthorized: Please log in again.');
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error fetching match data:', error);
+                alert('An error occurred while fetching match data.');
+            }
+        }
+
+        // Display match data
+        function displayMatch(data) {
+            const blueTeam = document.getElementById('blue-champs');
+            const redTeam = document.getElementById('red-champs');
+            const blueBans = document.getElementById('blue-bans');
+            const redBans = document.getElementById('red-bans');
+
+            blueTeam.innerHTML = '';
+            redTeam.innerHTML = '';
+            blueBans.innerHTML = '';
+            redBans.innerHTML = '';
+
+            window.currentGameId = data.match_matchId;  // Store current match ID
+
+            // Sort by ban/pick order
+            const players = [data];
+            players.sort((a, b) => a.player_banPickTurn - b.player_banPickTurn);
+
+            players.forEach(player => {
+                const li = document.createElement('li');
+                li.textContent = player.player_champName;
+
+                if (player.player_teamId === 100) {  // Assuming 100 is for Blue Team
+                    blueTeam.appendChild(li);
+                    if (player.player_champName_ban) {
+                        const banLi = document.createElement('li');
+                        banLi.textContent = player.player_champName_ban;
+                        blueBans.appendChild(banLi);
+                    }
+                } else if (player.player_teamId === 200) {  // Assuming 200 is for Red Team
+                    redTeam.appendChild(li);
+                    if (player.player_champName_ban) {
+                        const banLi = document.createElement('li');
+                        banLi.textContent = player.player_champName_ban;
+                        redBans.appendChild(banLi);
+                    }
+                }
+            });
+
+            // Set actual winning team for validation later
+            window.actualWinningTeam = data.player_win ? 'red' : 'blue';
+        }
+
+        // Handle Winner Selection
+        async function selectWinner(selectedTeam) {
+            const gameId = window.currentGameId;
+
+            if (!gameId) {
+                alert('Game ID is missing. Cannot submit the result.');
+                return;
+            }
+
+            let apiEndpoint = '';
+
+            // Check if the selected team matches the actual winning team
+            if (selectedTeam === window.actualWinningTeam) {
+                apiEndpoint = '/api/correct_guess';
+            } else {
+                apiEndpoint = '/api/incorrect_guess';
+            }
+
+            try {
+                const response = await fetch(apiEndpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ gameId })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    updateStats();
+                    await fetchMatchData();
+                } else {
+                    alert(data.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while submitting your guess.');
+            }
+        }
+
+        // Update user stats
+        async function updateStats() {
+            const response = await fetch('http://localhost:5000/api/stats', {
+                method: 'GET',
+                credentials: 'include'
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                correctCounter = data.correct_answers;
+                incorrectCounter = data.incorrect_answers;
+
+                document.getElementById('correct-counter').textContent = correctCounter;
+                document.getElementById('incorrect-counter').textContent = incorrectCounter;
+
+                const total = correctCounter + incorrectCounter;
+                const percentage = total > 0 ? ((correctCounter / total) * 100).toFixed(2) : 0;
+                document.getElementById('percentage-correct').textContent = `${percentage}%`;
+            } else {
+                alert('Error fetching user stats.');
+            }
+        }
+
+        // Fetch Leaderboard
+        async function fetchLeaderboard() {
+            const response = await fetch('http://localhost:5000/api/get_leaderboard', {
+                method: 'GET',
+                credentials: 'include'
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                const leaderboard = document.getElementById('leaderboard');
+                leaderboard.innerHTML = '';
+                data.leaderboard.forEach(user => {
+                    const li = document.createElement('li');
+                    li.textContent = `${user.user_id}: ${user.correct_answers} correct (${user.percentage.toFixed(2)}%)`;
+                    leaderboard.appendChild(li);
+                });
+            } else {
+                alert('Failed to fetch leaderboard');
+            }
+        }
+
+        // Initialize the page by fetching the first match and leaderboard
+        window.onload = async function() {
+            await fetchMatchData();
+            await fetchLeaderboard();
+            await updateStats();
+        };
+    </script>
 </body>
 </html>

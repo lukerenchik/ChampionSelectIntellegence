@@ -1,10 +1,152 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="icon" href="../static/favicon.ico" type="image/x-icon">
     <meta charset="UTF-8">
-    <title>Title</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Champion Select Intelligence</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .login-form {
+            width: 50%;
+            margin: 0 auto;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .error {
+            color: red;
+        }
+        .success {
+            color: green;
+        }
+    </style>
 </head>
 <body>
+    <!-- Login Form -->
+    <div class="login-form" id="login-section">
+        <h2>Login</h2>
+        <input type="text" id="username" placeholder="Username">
+        <input type="password" id="password" placeholder="Password">
+        <button onclick="login()">Login</button>
+        <button onclick="showRegistrationForm()">Register</button>
+        <p class="error" id="login-error"></p>
+    </div>
 
+    <!-- Registration Form -->
+    <div class="login-form" id="registration-section" style="display: none;">
+        <h2>Register</h2>
+        <input type="text" id="reg-username" placeholder="Username">
+        <input type="password" id="reg-password" placeholder="Password">
+        <button id="register-button" onclick="register()">Register</button>
+        <button onclick="hideRegistrationForm()">Cancel</button>
+        <p id="loading-message"></p> <!-- Loading message area -->
+        <p class="error" id="registration-error"></p> <!-- Error message area -->
+        <p class="success" id="registration-success"></p> <!-- Success message area -->
+    </div>
+
+    <script>
+        // Show Registration Form
+        function showRegistrationForm() {
+            document.getElementById('login-section').style.display = 'none';
+            document.getElementById('registration-section').style.display = 'block';
+        }
+
+        // Hide Registration Form
+        function hideRegistrationForm() {
+            document.getElementById('login-section').style.display = 'block';
+            document.getElementById('registration-section').style.display = 'none';
+            document.getElementById('registration-error').textContent = ''; // Clear error message
+            document.getElementById('registration-success').textContent = ''; // Clear success message
+        }
+
+        // Login Functionality
+        async function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const loginError = document.getElementById('login-error');
+
+            // Clear previous error message
+            loginError.textContent = '';
+
+            const response = await fetch('http://localhost:5000/api/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username, password }),
+                credentials: 'include'  // Include credentials (cookies) with request
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                document.getElementById('login-section').style.display = 'none';
+                // Handle successful login (e.g., redirect or display success message)
+                alert(`Welcome, ${username}!`);
+                // Redirect to another page or load user dashboard
+                window.location.href = '/matchguesser'; // Example redirection
+            } else {
+                loginError.textContent = data.message;
+            }
+        }
+
+        // Registration Functionality
+        async function register() {
+            const username = document.getElementById('reg-username').value;
+            const password = document.getElementById('reg-password').value;
+            const registerButton = document.getElementById('register-button');
+            const errorMessage = document.getElementById('registration-error');
+            const successMessage = document.getElementById('registration-success');
+            const loadingMessage = document.getElementById('loading-message');
+
+            // Clear previous messages
+            errorMessage.textContent = '';
+            successMessage.textContent = '';
+            loadingMessage.textContent = '';
+
+            // Validate inputs
+            if (!username || !password) {
+                errorMessage.textContent = 'Username and password are required.';
+                return;
+            }
+            if (password.length < 8) {
+                errorMessage.textContent = 'Password must be at least 8 characters long.';
+                return;
+            }
+
+            // Disable button to prevent multiple submissions
+            registerButton.disabled = true;
+            loadingMessage.textContent = 'Registering...';
+
+            try {
+                const response = await fetch('http://localhost:5000/api/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password }),
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    successMessage.textContent = 'Registration successful! Please log in.';
+                    hideRegistrationForm();
+                } else {
+                    errorMessage.textContent = data.message;
+                }
+            } catch (error) {
+                errorMessage.textContent = 'An error occurred: ' + error.message;
+            } finally {
+                registerButton.disabled = false;
+                loadingMessage.textContent = '';
+            }
+        }
+    </script>
 </body>
 </html>

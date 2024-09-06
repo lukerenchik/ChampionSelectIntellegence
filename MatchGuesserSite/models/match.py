@@ -1,7 +1,6 @@
 import random
 from flask_sqlalchemy import SQLAlchemy
-from user import UserMatchSeen
-
+from MatchGuesserSite.models.user import UserMatchSeen
 db = SQLAlchemy()
 
 class MatchData(db.Model):
