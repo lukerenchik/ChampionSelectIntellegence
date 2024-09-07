@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request, session
-from MatchGuesserSite.models.user import User
-from MatchGuesserSite.models.match import MatchData
+from MatchGuesserSite.models.models import User
+from MatchGuesserSite.models.models import MatchData
 from MatchGuesserSite.database import db
 
 api = Blueprint('api', __name__)

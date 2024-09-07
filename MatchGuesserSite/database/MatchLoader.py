@@ -7,7 +7,7 @@ class MatchLoader:
         """
         Initialize the MatchLoader with a dataset and features to extract.
 
-        :param data: DataFrame or CSV filepath containing the match data.
+        :param data_filepath: DataFrame or CSV filepath containing the match data.
         :param features: List of column names to extract as features.
         """
         self.data_filepath = data_filepath
@@ -21,6 +21,7 @@ class MatchLoader:
         """
         if isinstance(self.data_filepath, str):  # If data is a filepath, read the CSV
             df = pd.read_csv(self.data_filepath)
+            #print(df.dtypes)
         else:
             df = self.data_filepath
 
@@ -45,10 +46,16 @@ class MatchLoader:
         """
         Create the 'matches' table in the SQLite database if it doesn't exist already.
         """
-        query = f"""
+        query = """
         CREATE TABLE IF NOT EXISTS matches (
-            match_matchId INTEGER PRIMARY KEY,
-            {", ".join([f"{col} TEXT" for col in self.features])}
+            match_matchId TEXT PRIMARY KEY,
+            player_teamId TEXT,
+            player_teamPosition TEXT,
+            player_lane TEXT,
+            player_champName TEXT,
+            player_banPickTurn INTEGER,
+            player_champName_ban TEXT,
+            player_win INTEGER
         )
         """
         self.conn.execute(query)
@@ -69,10 +76,22 @@ class MatchLoader:
         # Insert matches into the database
         for match in matches:
             match_data = match[self.features].values.tolist()[0]
+
+            # Convert player_win to integer (0 or 1) if it's a boolean
+            match_data[self.features.index('player_win')] = int(match_data[self.features.index('player_win')])
+
+            # Log the data to ensure it's correct
+            #print(f"Inserting match data: {match_data}")
+
             match_tuple = tuple(match_data)
             placeholders = ", ".join(["?"] * len(self.features))
             query = f"INSERT OR REPLACE INTO matches ({', '.join(self.features)}) VALUES ({placeholders})"
-            cursor.execute(query, match_tuple)
+
+            try:
+                cursor.execute(query, match_tuple)
+            except sqlite3.IntegrityError as e:
+                print(f"Error inserting match: {e}")
+                continue
 
         self.conn.commit()
         cursor.close()
@@ -80,13 +99,12 @@ class MatchLoader:
         return "Matches successfully added to the database."
 
 
-
-
 # Load match data and initialize match bundler
-df = pd.read_csv('../Data/lol_match_data.csv')
+data_filepath = '../../Data/lol_match_data.csv'
 features = [
     'match_matchId', 'player_teamId', 'player_teamPosition',
     'player_lane', 'player_champName', 'player_banPickTurn',
     'player_champName_ban', 'player_win'
 ]
-match_bundler = MatchLoader(df, features)
+match_bundler = MatchLoader(data_filepath, features)
+match_bundler.load_matches_to_db()
