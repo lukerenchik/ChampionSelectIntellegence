@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/Champ Select Intellegence.iml" filepath="$PROJECT_DIR$/.idea/Champ Select Intellegence.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../ChampionSelectIntelligence/.idea/Champ Select Intelligence.iml" filepath="$PROJECT_DIR$/../ChampionSelectIntelligence/.idea/Champ Select Intelligence.iml" />
     </modules>
   </component>
 </project>

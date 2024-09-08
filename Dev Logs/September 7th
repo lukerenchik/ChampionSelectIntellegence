@@ -12,8 +12,7 @@ Match Loader setup & working! Database now is loaded with all of the matches!!!
 
 ------------------------------------------------
 
-Successes : Match loader is working and should be adaptable to any database schema. Have a foward plan to pivot
-from SQLAlchemy.
+Successes : Match loader is working and should be adaptable to any database schema.
 
 Challenges : Need to understand a database toolchain and implement effectively, SQLAlchemy is causing more issues
 than it is fixing, now I am considering using MongoDB or some other online noSQL database to house my information.

@@ -1,55 +1,52 @@
+import sqlite3
 from werkzeug.security import generate_password_hash, check_password_hash
-import random
-from MatchGuesserSite.database.db import db
 
 
-class User(db.Model):
-    __tablename__ = 'users'
-    __table_args__ = {'extend_existing': True}
+class User:
+    def __init__(self, user_id=None, username=None, password_hash=None, correct_counter=0, incorrect_counter=0):
+        self.user_id = user_id
+        self.username = username
+        self.password_hash = password_hash
+        self.correct_counter = correct_counter
+        self.incorrect_counter = incorrect_counter
 
-    user_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    username = db.Column(db.String(80), nullable=False, unique=True)
-    password_hash = db.Column(db.String(200), nullable=False)
-    correct_counter = db.Column(db.Integer, default=0)
-    incorrect_counter = db.Column(db.Integer, default=0)
+    @staticmethod
+    def create_table():
+        with sqlite3.connect('MatchGuesser.db') as conn:
+            cursor = conn.cursor()
+            cursor.execute('''CREATE TABLE IF NOT EXISTS users (
+                user_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT NOT NULL UNIQUE,
+                password_hash TEXT NOT NULL,
+                correct_counter INTEGER DEFAULT 0,
+                incorrect_counter INTEGER DEFAULT 0
+            )''')
+            conn.commit()
 
-
-    @classmethod
-    def add_user(cls, username, password_hash):
-        new_user = cls(
-            username=username,
-            password_hash=password_hash,
-            correct_counter=0,
-            incorrect_counter=0
-        )
-
-        db.session.add(new_user)
-
+    @staticmethod
+    def add_user(username, password_hash):
         try:
-            db.session.commit()
-            print(f"User '{username}' added successfully!")
-        except Exception as e:
-            db.session.rollback()
+            with sqlite3.connect('MatchGuesser.db') as conn:
+                cursor = conn.cursor()
+                cursor.execute('''INSERT INTO users (username, password_hash, correct_counter, incorrect_counter)
+                                  VALUES (?, ?, 0, 0)''', (username, password_hash))
+                conn.commit()
+                print(f"User '{username}' added successfully!")
+        except sqlite3.IntegrityError as e:
             print(f"Error adding user '{username}':", str(e))
 
+    @staticmethod
+    def get_user_by_username(username):
+        with sqlite3.connect('MatchGuesser.db') as conn:
+            cursor = conn.cursor()
+            cursor.execute('SELECT * FROM users WHERE username = ?', (username,))
+            row = cursor.fetchone()
+            if row:
+                return User(*row)
+            return None
+
     def __repr__(self):
-        return f"<User(user_id={self.user_id}, correct_answers={self.correct_answers})>"
+        return f"<User(user_id={self.user_id}, correct_answers={self.correct_counter}, incorrect_answers={self.incorrect_counter})>"
 
-
-
-
-
-class MatchData(db.Model):
-    __tablename__ = 'MatchData'
-    __table_args__ = {'extend_existing': True}
-
-    match_matchId = db.Column(db.String(50), nullable=False, primary_key=True)
-    player_teamId = db.Column(db.String(50), nullable=False)
-    player_teamPosition = db.Column(db.String(50), nullable=False)
-    player_lane = db.Column(db.String(50), nullable=False)
-    player_champName = db.Column(db.String(100), nullable=False)
-    player_banPickTurn = db.Column(db.Integer)
-    player_champName_ban = db.Column(db.String(100))
-    player_win = db.Column(db.Boolean, nullable=False)
 
 
