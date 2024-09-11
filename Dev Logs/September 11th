@@ -1,0 +1,5 @@
+Fixed databases to have correct data types
+
+Updated Matchloader class
+
+MatchFetcher successfully returned random matches from the database.
