@@ -1,24 +1,18 @@
-from flask import Blueprint, render_template, session, redirect, url_for
+from flask import Blueprint, render_template
 
 web = Blueprint('web', __name__)
 
 @web.route('/')
 def index():
-    # Check if the user is already logged in, and redirect to matchguesser if they are
-    if 'user_id' in session:
-        return redirect(url_for('web.matchguesser'))
+    # Simply render the index page (no user login checks)
+    return render_template('matchguesser.html')
 
-    # Otherwise, show the login page
-    return render_template('login.html')
 @web.route('/register')
 def register():
+    # Render the register page (no user-related functionality)
     return render_template('register.html')
 
 @web.route('/matchguesser')
 def matchguesser():
-    # Check if the user is logged in by verifying the session
-    if 'user_id' in session:
-        return render_template('matchguesser.html')
-    else:
-        # Redirect to login if the user is not logged in
-        return redirect(url_for('web.index'))
+    # Always render the matchguesser page (no user login checks)
+    return render_template('matchguesser.html')

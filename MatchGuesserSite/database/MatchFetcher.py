@@ -108,6 +108,7 @@ def fetch_random_match():
         players_in_match = cursor.fetchall()
 
         # Return the random match ID and the list of players
+
         return random_match_id, players_in_match
 
     except Exception as e:

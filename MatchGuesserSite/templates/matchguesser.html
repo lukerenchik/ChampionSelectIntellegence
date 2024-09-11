@@ -22,26 +22,24 @@
         .team h2 {
             text-align: center;
         }
-        .team ul {
-            list-style-type: none;
-            padding: 0;
+        table {
+            width: 100%;
+            border-collapse: collapse;
         }
-        .bans {
-            margin-top: 20px;
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: center;
         }
         .winner {
             text-align: center;
             margin-top: 20px;
         }
-        .stats, .leaderboard {
+        .stats {
             margin-top: 20px;
             padding: 10px;
             border: 1px solid #ccc;
             border-radius: 5px;
-        }
-        .leaderboard {
-            width: 50%;
-            margin: 0 auto;
         }
         .error {
             color: red;
@@ -54,14 +52,20 @@
 <body>
 
     <!-- Match Display and User Interaction -->
-    <div class="container" id="match-section" style="display: none;">
+    <div class="container" id="match-section">
         <div class="team" id="blue-team">
             <h2>Blue Team</h2>
-            <ul id="blue-champs"></ul>
-            <div class="bans">
-                <h3>Bans</h3>
-                <ul id="blue-bans"></ul>
-            </div>
+            <table id="blue-team-table">
+                <thead>
+                    <tr>
+                        <th>Pick</th>
+                        <th>Ban</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Data for Blue Team will be inserted here -->
+                </tbody>
+            </table>
             <div class="winner">
                 <button onclick="selectWinner('blue')">Select as Winner</button>
             </div>
@@ -69,11 +73,17 @@
 
         <div class="team" id="red-team">
             <h2>Red Team</h2>
-            <ul id="red-champs"></ul>
-            <div class="bans">
-                <h3>Bans</h3>
-                <ul id="red-bans"></ul>
-            </div>
+            <table id="red-team-table">
+                <thead>
+                    <tr>
+                        <th>Pick</th>
+                        <th>Ban</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Data for Red Team will be inserted here -->
+                </tbody>
+            </table>
             <div class="winner">
                 <button onclick="selectWinner('red')">Select as Winner</button>
             </div>
@@ -81,181 +91,98 @@
     </div>
 
     <!-- User Stats -->
-    <div class="stats" id="stats-section" style="display: none;">
+    <div class="stats" id="stats-section">
         <p>Correct Choices: <span id="correct-counter">0</span></p>
         <p>Incorrect Choices: <span id="incorrect-counter">0</span></p>
         <p>Percentage Correct: <span id="percentage-correct">0%</span></p>
     </div>
 
-    <!-- Leaderboard -->
-    <div class="leaderboard" id="leaderboard-section" style="display: none;">
-        <h2>Leaderboard</h2>
-        <ul id="leaderboard"></ul>
-    </div>
-
+    <!-- JavaScript -->
     <script>
         let correctCounter = 0;
         let incorrectCounter = 0;
 
-        // Fetch random match data
+        // Fetch random match data and display in the tables
         async function fetchMatchData() {
             try {
-                const response = await fetch('http://localhost:5000/api/rand_match', {
-                    method: 'GET',
-                    credentials: 'include',  // Ensure session cookies are sent with the request
-                });
-
+                console.log('Fetching match data...');
+                const response = await fetch('/api/rand_match');
                 const data = await response.json();
 
-                if (response.ok) {
-                    displayMatch(data);
-                } else if (response.status === 401) {
-                    alert('Unauthorized: Please log in again.');
-                } else {
-                    alert('Error: ' + data.message);
-                }
+                console.log('Fetched match data:', data);  // Log the fetched data
+
+                // Call displayMatch to populate the actual HTML page
+                displayMatch(data);
             } catch (error) {
                 console.error('Error fetching match data:', error);
                 alert('An error occurred while fetching match data.');
             }
         }
 
-        // Display match data
+        // Display match data in table format
         function displayMatch(data) {
-            const blueTeam = document.getElementById('blue-champs');
-            const redTeam = document.getElementById('red-champs');
-            const blueBans = document.getElementById('blue-bans');
-            const redBans = document.getElementById('red-bans');
+            const blueTeamTable = document.getElementById('blue-team-table').getElementsByTagName('tbody')[0];
+            const redTeamTable = document.getElementById('red-team-table').getElementsByTagName('tbody')[0];
 
-            blueTeam.innerHTML = '';
-            redTeam.innerHTML = '';
-            blueBans.innerHTML = '';
-            redBans.innerHTML = '';
+            console.log('Displaying match data:', data);  // Log to check if function is called
 
-            window.currentGameId = data.match_matchId;  // Store current match ID
+            // Clear previous entries
+            blueTeamTable.innerHTML = '';
+            redTeamTable.innerHTML = '';
 
-            // Sort by ban/pick order
-            const players = [data];
-            players.sort((a, b) => a.player_banPickTurn - b.player_banPickTurn);
+            // Iterate through the player data and split into teams
+            data.forEach(player => {
+                const row = document.createElement('tr');
+                const pickCell = document.createElement('td');
+                const banCell = document.createElement('td');
+                pickCell.textContent = player.player_champName;
+                banCell.textContent = player.player_champName_ban || '-';
 
-            players.forEach(player => {
-                const li = document.createElement('li');
-                li.textContent = player.player_champName;
-
-                if (player.player_teamId === 100) {  // Assuming 100 is for Blue Team
-                    blueTeam.appendChild(li);
-                    if (player.player_champName_ban) {
-                        const banLi = document.createElement('li');
-                        banLi.textContent = player.player_champName_ban;
-                        blueBans.appendChild(banLi);
-                    }
-                } else if (player.player_teamId === 200) {  // Assuming 200 is for Red Team
-                    redTeam.appendChild(li);
-                    if (player.player_champName_ban) {
-                        const banLi = document.createElement('li');
-                        banLi.textContent = player.player_champName_ban;
-                        redBans.appendChild(banLi);
-                    }
+                if (player.player_teamId === 100) {  // Blue team
+                    row.appendChild(pickCell);
+                    row.appendChild(banCell);
+                    blueTeamTable.appendChild(row);
+                } else if (player.player_teamId === 200) {  // Red team
+                    row.appendChild(pickCell);
+                    row.appendChild(banCell);
+                    redTeamTable.appendChild(row);
                 }
             });
 
-            // Set actual winning team for validation later
-            window.actualWinningTeam = data.player_win ? 'red' : 'blue';
+            // Set the actual winning team for validation later
+            const winningPlayer = data.find(player => player.player_win);  // Find a player where player_win is true
+            window.actualWinningTeam = winningPlayer.player_teamId === 100 ? 'blue' : 'red';
         }
 
         // Handle Winner Selection
-        async function selectWinner(selectedTeam) {
-            const gameId = window.currentGameId;
+        function selectWinner(selectedTeam) {
+            const actualWinningTeam = window.actualWinningTeam;
 
-            if (!gameId) {
-                alert('Game ID is missing. Cannot submit the result.');
-                return;
-            }
-
-            let apiEndpoint = '';
-
-            // Check if the selected team matches the actual winning team
-            if (selectedTeam === window.actualWinningTeam) {
-                apiEndpoint = '/api/correct_guess';
+            if (selectedTeam === actualWinningTeam) {
+                correctCounter++;
+                alert('Correct guess!');
             } else {
-                apiEndpoint = '/api/incorrect_guess';
+                incorrectCounter++;
+                alert('Incorrect guess!');
             }
 
-            try {
-                const response = await fetch(apiEndpoint, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    credentials: 'include',
-                    body: JSON.stringify({ gameId })
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    updateStats();
-                    await fetchMatchData();
-                } else {
-                    alert(data.message);
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('An error occurred while submitting your guess.');
-            }
+            updateStats();
+            fetchMatchData();  // Fetch new match after each guess
         }
 
         // Update user stats
-        async function updateStats() {
-            const response = await fetch('http://localhost:5000/api/stats', {
-                method: 'GET',
-                credentials: 'include'
-            });
+        function updateStats() {
+            document.getElementById('correct-counter').textContent = correctCounter;
+            document.getElementById('incorrect-counter').textContent = incorrectCounter;
 
-            const data = await response.json();
-
-            if (response.ok) {
-                correctCounter = data.correct_answers;
-                incorrectCounter = data.incorrect_answers;
-
-                document.getElementById('correct-counter').textContent = correctCounter;
-                document.getElementById('incorrect-counter').textContent = incorrectCounter;
-
-                const total = correctCounter + incorrectCounter;
-                const percentage = total > 0 ? ((correctCounter / total) * 100).toFixed(2) : 0;
-                document.getElementById('percentage-correct').textContent = `${percentage}%`;
-            } else {
-                alert('Error fetching user stats.');
-            }
+            const total = correctCounter + incorrectCounter;
+            const percentage = total > 0 ? ((correctCounter / total) * 100).toFixed(2) : 0;
+            document.getElementById('percentage-correct').textContent = `${percentage}%`;
         }
 
-        // Fetch Leaderboard
-        async function fetchLeaderboard() {
-            const response = await fetch('http://localhost:5000/api/get_leaderboard', {
-                method: 'GET',
-                credentials: 'include'
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                const leaderboard = document.getElementById('leaderboard');
-                leaderboard.innerHTML = '';
-                data.leaderboard.forEach(user => {
-                    const li = document.createElement('li');
-                    li.textContent = `${user.user_id}: ${user.correct_answers} correct (${user.percentage.toFixed(2)}%)`;
-                    leaderboard.appendChild(li);
-                });
-            } else {
-                alert('Failed to fetch leaderboard');
-            }
-        }
-
-        // Initialize the page by fetching the first match and leaderboard
-        window.onload = async function() {
-            await fetchMatchData();
-            await fetchLeaderboard();
-            await updateStats();
+        // Initialize the page by fetching the first match
+        window.onload = function() {
+            fetchMatchData();
         };
     </script>
 </body>
