@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request, session
 from MatchGuesserSite.database.MatchFetcher import fetch_random_match
+from MatchGuesserSite.database.Register import register_user
 
 
 api = Blueprint('api', __name__)
@@ -30,3 +31,34 @@ def get_rand_match():
     ]
 
     return jsonify(match_data), 200
+
+@api.route('/register', methods=['POST'])
+def register():
+    """
+    API route to register a new user.
+    It extracts the user details from the request and calls the register_user function.
+    """
+    try:
+        # Extract user details from the POST request
+        data = request.json  # Ensure this is JSON
+        name = data.get('name')
+        password = data.get('pass')
+
+        # Check if name or password is missing
+        if not name or not password:
+            return jsonify({"error": "Username and password are required"}), 400
+
+        # Call the registration function
+        registration_successful = register_user(name, password)
+
+        if registration_successful:
+            return jsonify({"message": "User registered successfully"}), 201
+        else:
+            return jsonify({"error": "Failed to register user"}), 500
+
+    except Exception as e:
+        # Log the error for debugging
+        print(f"Error in registration API: {e}")
+        return jsonify({"error": "An internal error occurred"}), 500
+
+

@@ -7,3 +7,8 @@ Demo: https://youtu.be/HmnYJZtafgw
 
 Next Steps: Implement a user system with registration & login, then create a leaderboard to track those with the
 best ratio of correct guesses.
+
+User Registration Sucessful!!! Woohoo! Another triumph today! Important lesson is to remember that database permissions
+are always a first place to look when running into errors with posting, accessing, and working with new parts of
+the database schema.
+
