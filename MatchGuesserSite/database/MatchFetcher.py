@@ -76,7 +76,8 @@ def fetch_random_match():
     from the 'players' table that correspond to that match.
 
     This function fetches a random match ID from the 'matches' table and retrieves
-    all players from the 'players' table with the same match ID.
+    all players from the 'players' table with the same match ID. It ensures that
+    each player is only included once by filtering out duplicates.
     """
     # Step 1: Establish database connection
     conn = get_db_connection()
@@ -97,9 +98,10 @@ def fetch_random_match():
 
         random_match_id = random_match[0]
 
-        # Step 3: Fetch all player entries with the matching match_matchId
+        # Step 3: Fetch unique player entries with the matching match_matchId
+        # Ensure that duplicates are removed by using DISTINCT on relevant player fields.
         cursor.execute("""
-            SELECT player_id, match_matchId, player_teamId, player_teamPosition, 
+            SELECT DISTINCT ON (player_id) player_id, match_matchId, player_teamId, player_teamPosition, 
                    player_lane, player_champName, player_banPickTurn, player_champName_ban, player_win
             FROM players
             WHERE match_matchId = %s;
@@ -108,7 +110,6 @@ def fetch_random_match():
         players_in_match = cursor.fetchall()
 
         # Return the random match ID and the list of players
-
         return random_match_id, players_in_match
 
     except Exception as e:

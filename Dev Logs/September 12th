@@ -1,0 +1,9 @@
+Big Win Today!!!
+
+Champions are being displayed in the HTML, I have linked the Champion portraits to the naming so those are displayed
+on the website as well. There is no longer a bug with not refreshing properly after selecting a winner.
+
+Demo: https://youtu.be/HmnYJZtafgw
+
+Next Steps: Implement a user system with registration & login, then create a leaderboard to track those with the
+best ratio of correct guesses.

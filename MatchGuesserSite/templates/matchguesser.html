@@ -22,14 +22,12 @@
         .team h2 {
             text-align: center;
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
+        .team ul {
+            list-style-type: none;
+            padding: 0;
         }
-        th, td {
-            border: 1px solid #ccc;
-            padding: 8px;
-            text-align: center;
+        .bans {
+            margin-top: 20px;
         }
         .winner {
             text-align: center;
@@ -47,6 +45,17 @@
         .success {
             color: green;
         }
+        .champ-img {
+            width: 50px;  /* Adjust size as necessary */
+            height: 50px;
+            object-fit: cover;
+            margin-right: 10px;
+        }
+        .champion-entry, .ban-entry {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
@@ -55,17 +64,11 @@
     <div class="container" id="match-section">
         <div class="team" id="blue-team">
             <h2>Blue Team</h2>
-            <table id="blue-team-table">
-                <thead>
-                    <tr>
-                        <th>Pick</th>
-                        <th>Ban</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- Data for Blue Team will be inserted here -->
-                </tbody>
-            </table>
+            <ul id="blue-champs"></ul>
+            <div class="bans">
+                <h3>Bans</h3>
+                <ul id="blue-bans"></ul>
+            </div>
             <div class="winner">
                 <button onclick="selectWinner('blue')">Select as Winner</button>
             </div>
@@ -73,17 +76,11 @@
 
         <div class="team" id="red-team">
             <h2>Red Team</h2>
-            <table id="red-team-table">
-                <thead>
-                    <tr>
-                        <th>Pick</th>
-                        <th>Ban</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- Data for Red Team will be inserted here -->
-                </tbody>
-            </table>
+            <ul id="red-champs"></ul>
+            <div class="bans">
+                <h3>Bans</h3>
+                <ul id="red-bans"></ul>
+            </div>
             <div class="winner">
                 <button onclick="selectWinner('red')">Select as Winner</button>
             </div>
@@ -102,7 +99,7 @@
         let correctCounter = 0;
         let incorrectCounter = 0;
 
-        // Fetch random match data and display in the tables
+        // Fetch random match data and display in the teams
         async function fetchMatchData() {
             try {
                 console.log('Fetching match data...');
@@ -119,39 +116,94 @@
             }
         }
 
-        // Display match data in table format
+        // Display match data in the main HTML structure
         function displayMatch(data) {
-            const blueTeamTable = document.getElementById('blue-team-table').getElementsByTagName('tbody')[0];
-            const redTeamTable = document.getElementById('red-team-table').getElementsByTagName('tbody')[0];
-
-            console.log('Displaying match data:', data);  // Log to check if function is called
+            const blueTeam = document.getElementById('blue-champs');
+            const redTeam = document.getElementById('red-champs');
+            const blueBans = document.getElementById('blue-bans');
+            const redBans = document.getElementById('red-bans');
 
             // Clear previous entries
-            blueTeamTable.innerHTML = '';
-            redTeamTable.innerHTML = '';
+            blueTeam.innerHTML = '';
+            redTeam.innerHTML = '';
+            blueBans.innerHTML = '';
+            redBans.innerHTML = '';
 
             // Iterate through the player data and split into teams
             data.forEach(player => {
-                const row = document.createElement('tr');
-                const pickCell = document.createElement('td');
-                const banCell = document.createElement('td');
-                pickCell.textContent = player.player_champName;
-                banCell.textContent = player.player_champName_ban || '-';
+                // Create a container for the champion and image
+                const li = document.createElement('li');
+                const championEntry = document.createElement('div');
+                championEntry.classList.add('champion-entry');
 
-                if (player.player_teamId === 100) {  // Blue team
-                    row.appendChild(pickCell);
-                    row.appendChild(banCell);
-                    blueTeamTable.appendChild(row);
-                } else if (player.player_teamId === 200) {  // Red team
-                    row.appendChild(pickCell);
-                    row.appendChild(banCell);
-                    redTeamTable.appendChild(row);
+                // Create the image element for the champion
+                const champImg = document.createElement('img');
+                champImg.src = `/static/images/champions/${player.player_champName}.png`;  // Champion image URL
+                champImg.alt = player.player_champName;
+                champImg.classList.add('champ-img');
+
+                // Create the champion name text
+                const champText = document.createElement('span');
+                champText.textContent = player.player_champName;
+
+                // Append the image and text to the container
+                championEntry.appendChild(champImg);
+                championEntry.appendChild(champText);
+                li.appendChild(championEntry);
+
+                // Check the team and add player to the corresponding team
+                if (player.player_teamId === "blue") {  // Blue team
+                    blueTeam.appendChild(li);
+
+                    // Display bans for blue team
+                    if (player.player_champName_ban) {
+                        const banLi = document.createElement('li');
+                        const banEntry = document.createElement('div');
+                        banEntry.classList.add('ban-entry');
+
+                        const banImg = document.createElement('img');
+                        banImg.src = `/static/images/champions/${player.player_champName_ban}.png`;  // Ban image URL
+                        banImg.alt = player.player_champName_ban;
+                        banImg.classList.add('champ-img');
+
+                        const banText = document.createElement('span');
+                        banText.textContent = player.player_champName_ban;
+
+                        banEntry.appendChild(banImg);
+                        banEntry.appendChild(banText);
+                        banLi.appendChild(banEntry);
+
+                        blueBans.appendChild(banLi);
+                    }
+                } else if (player.player_teamId === "red") {  // Red team
+                    redTeam.appendChild(li);
+
+                    // Display bans for red team
+                    if (player.player_champName_ban) {
+                        const banLi = document.createElement('li');
+                        const banEntry = document.createElement('div');
+                        banEntry.classList.add('ban-entry');
+
+                        const banImg = document.createElement('img');
+                        banImg.src = `/static/images/champions/${player.player_champName_ban}.png`;  // Ban image URL
+                        banImg.alt = player.player_champName_ban;
+                        banImg.classList.add('champ-img');
+
+                        const banText = document.createElement('span');
+                        banText.textContent = player.player_champName_ban;
+
+                        banEntry.appendChild(banImg);
+                        banEntry.appendChild(banText);
+                        banLi.appendChild(banEntry);
+
+                        redBans.appendChild(banLi);
+                    }
                 }
             });
 
             // Set the actual winning team for validation later
             const winningPlayer = data.find(player => player.player_win);  // Find a player where player_win is true
-            window.actualWinningTeam = winningPlayer.player_teamId === 100 ? 'blue' : 'red';
+            window.actualWinningTeam = winningPlayer.player_teamId === "blue" ? 'blue' : 'red';
         }
 
         // Handle Winner Selection
