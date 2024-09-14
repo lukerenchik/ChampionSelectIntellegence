@@ -16,3 +16,11 @@ def register():
 def matchguesser():
     # Always render the matchguesser page (no user login checks)
     return render_template('matchguesser.html')
+
+@web.route('/login')
+def login():
+    return render_template('login.html')
+
+@web.route('/leaderboard')
+def leaderboard():
+    return render_template('leaderboard.html')

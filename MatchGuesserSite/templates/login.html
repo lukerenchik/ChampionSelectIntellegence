@@ -1,152 +1,87 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="icon" href="../static/favicon.ico" type="image/x-icon">
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Champion Select Intelligence</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
-        .login-form {
-            width: 50%;
-            margin: 0 auto;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
-        .error {
-            color: red;
-        }
-        .success {
-            color: green;
-        }
-    </style>
+    <title>Login - Champion Select Intelligence</title>
+    <!-- Include styles.css -->
+    <link rel="stylesheet" href="../static/css/style.css">
+    <!-- Include Google Fonts -->
+    <link href="https://fonts.googleapis.com/css?family=Roboto:400,700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <!-- Login Form -->
-    <div class="login-form" id="login-section">
+
+<!-- Navbar with logo and links -->
+<div class="navbar">
+    <div class="navbar-content">
+        <div class="logo">
+            <a href="/">Champion Select Intelligence</a>
+        </div>
+        <div class="nav-links">
+            <a href="/matchguesser">Match Guesser</a>
+            <a href="/leaderboard">Leaderboard</a>
+        </div>
+    </div>
+</div>
+
+<!-- Login Form Centered on the Page -->
+<div class="container">
+    <form id="loginForm" action="/login" method="post">
         <h2>Login</h2>
-        <input type="text" id="username" placeholder="Username">
-        <input type="password" id="password" placeholder="Password">
-        <button onclick="login()">Login</button>
-        <button onclick="showRegistrationForm()">Register</button>
-        <p class="error" id="login-error"></p>
-    </div>
 
-    <!-- Registration Form -->
-    <div class="login-form" id="registration-section" style="display: none;">
-        <h2>Register</h2>
-        <input type="text" id="reg-username" placeholder="Username">
-        <input type="password" id="reg-password" placeholder="Password">
-        <button id="register-button" onclick="register()">Register</button>
-        <button onclick="hideRegistrationForm()">Cancel</button>
-        <p id="loading-message"></p> <!-- Loading message area -->
-        <p class="error" id="registration-error"></p> <!-- Error message area -->
-        <p class="success" id="registration-success"></p> <!-- Success message area -->
-    </div>
+        <div class="message error" id="error-message" style="display: none;"></div>
 
-    <script>
-        // Show Registration Form
-        function showRegistrationForm() {
-            document.getElementById('login-section').style.display = 'none';
-            document.getElementById('registration-section').style.display = 'block';
-        }
+        <label for="name">Username</label>
+        <input type="text" id="name" name="name" required placeholder="Enter your username">
 
-        // Hide Registration Form
-        function hideRegistrationForm() {
-            document.getElementById('login-section').style.display = 'block';
-            document.getElementById('registration-section').style.display = 'none';
-            document.getElementById('registration-error').textContent = ''; // Clear error message
-            document.getElementById('registration-success').textContent = ''; // Clear success message
-        }
+        <label for="pass">Password</label>
+        <input type="password" id="pass" name="pass" required placeholder="Enter your password">
 
-        // Login Functionality
-        async function login() {
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            const loginError = document.getElementById('login-error');
+        <input type="submit" value="Login">
 
-            // Clear previous error message
-            loginError.textContent = '';
+        <div class="footer">
+            <p>Don't have an account? <a href="/register">Register here</a>.</p>
+        </div>
+    </form>
+</div>
 
-            const response = await fetch('http://localhost:5000/api/login', {
+<!-- JavaScript -->
+<script>
+    const form = document.getElementById('loginForm');
+    const errorMessage = document.getElementById('error-message');
+
+    form.addEventListener('submit', async function (event) {
+        event.preventDefault();
+
+        const formData = {
+            name: document.getElementById('name').value,
+            pass: document.getElementById('pass').value
+        };
+
+        try {
+            const response = await fetch('/api/login', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ username, password }),
-                credentials: 'include'  // Include credentials (cookies) with request
+                body: JSON.stringify(formData)
             });
 
-            const data = await response.json();
+            const result = await response.json();
 
             if (response.ok) {
-                document.getElementById('login-section').style.display = 'none';
-                // Handle successful login (e.g., redirect or display success message)
-                alert(`Welcome, ${username}!`);
-                // Redirect to another page or load user dashboard
-                window.location.href = '/matchguesser'; // Example redirection
+                // Redirect the user to the matchguesser page after login
+                window.location.href = "/matchguesser";
             } else {
-                loginError.textContent = data.message;
+                errorMessage.textContent = result.error;
+                errorMessage.style.display = 'block';
             }
+        } catch (error) {
+            console.error('Error:', error);
+            errorMessage.textContent = 'Failed to log in.';
+            errorMessage.style.display = 'block';
         }
+    });
+</script>
 
-        // Registration Functionality
-        async function register() {
-            const username = document.getElementById('reg-username').value;
-            const password = document.getElementById('reg-password').value;
-            const registerButton = document.getElementById('register-button');
-            const errorMessage = document.getElementById('registration-error');
-            const successMessage = document.getElementById('registration-success');
-            const loadingMessage = document.getElementById('loading-message');
-
-            // Clear previous messages
-            errorMessage.textContent = '';
-            successMessage.textContent = '';
-            loadingMessage.textContent = '';
-
-            // Validate inputs
-            if (!username || !password) {
-                errorMessage.textContent = 'Username and password are required.';
-                return;
-            }
-            if (password.length < 8) {
-                errorMessage.textContent = 'Password must be at least 8 characters long.';
-                return;
-            }
-
-            // Disable button to prevent multiple submissions
-            registerButton.disabled = true;
-            loadingMessage.textContent = 'Registering...';
-
-            try {
-                const response = await fetch('http://localhost:5000/api/register', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ username, password }),
-                    credentials: 'include'
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    successMessage.textContent = 'Registration successful! Please log in.';
-                    hideRegistrationForm();
-                } else {
-                    errorMessage.textContent = data.message;
-                }
-            } catch (error) {
-                errorMessage.textContent = 'An error occurred: ' + error.message;
-            } finally {
-                registerButton.disabled = false;
-                loadingMessage.textContent = '';
-            }
-        }
-    </script>
 </body>
 </html>
